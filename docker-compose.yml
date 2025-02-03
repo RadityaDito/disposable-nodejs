@@ -4,8 +4,6 @@ services:
   # app:
   #   build: .
   #   container_name: disposable-nodejs
-  #   networks:
-  #     - custom_network
   #   ports:
   #     - "8080:8080"
   #   depends_on:
@@ -16,6 +14,7 @@ services:
   #     - POSTGRES_URL=postgresql://user:password@postgres:5432/mydatabase
   #     - REDIS_URL=redis://redis:6379
   #     - KAFKA_BROKER=kafka:9092
+  #     - MONGODB_URL=mongodb://root:password@mongodb:27017
   #   restart: always
 
   postgres:
@@ -57,15 +56,18 @@ services:
       - "2181:2181"
     environment:
       - ALLOW_ANONYMOUS_LOGIN=yes
+
   kafka:
     image: "bitnami/kafka:latest"
     container_name: "kafka-disposable-nodejs"
     ports:
-      - "9092:9092"
+      - "9092:9092" # For internal Docker connections
+      - "29092:29092" # For external (host machine) connections
     environment:
       - KAFKA_BROKER_ID=1
-      - KAFKA_LISTENERS=PLAINTEXT://:9092
-      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://127.0.0.1:9092
+      - KAFKA_LISTENERS=PLAINTEXT://:9092,EXTERNAL://:29092
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,EXTERNAL://host.docker.internal:29092
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
       - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
       - ALLOW_PLAINTEXT_LISTENER=yes
     depends_on:

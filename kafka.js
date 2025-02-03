@@ -33,6 +33,7 @@ const isKafkaConnected = async () => {
     const clusterInfo = await kafka.admin().describeCluster();
     return !!clusterInfo.brokers.length;
   } catch (error) {
+    console.error("Kafka connection error:", error);
     return false;
   }
 };
