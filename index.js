@@ -1,8 +1,12 @@
 require("dotenv").config();
 const express = require("express");
-const { connectPostgres, disconnectPostgres } = require("./postgres");
-const { connectRedis, disconnectRedis } = require("./redis");
-const { connectKafka, disconnectKafka } = require("./kafka");
+const {
+  connectPostgres,
+  disconnectPostgres,
+  isPostgresConnected,
+} = require("./postgres");
+const { connectRedis, disconnectRedis, isRedisConnected } = require("./redis");
+const { connectKafka, disconnectKafka, isKafkaConnected } = require("./kafka");
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -33,12 +37,28 @@ app.get("/liveness", (req, res) => {
   res.status(200).send("Liveness: OK");
 });
 
-// Readiness Probe: Check if the app is ready to accept traffic
-app.get("/readiness", (req, res) => {
-  if (isAppReady) {
-    res.status(200).send("Readiness: OK");
-  } else {
-    res.status(503).send("Readiness: NOT READY");
+// Readiness Probe: Check if all services are connected
+app.get("/readiness", async (req, res) => {
+  try {
+    const postgresReady = await isPostgresConnected();
+    const redisReady = await isRedisConnected();
+    const kafkaReady = await isKafkaConnected();
+
+    if (postgresReady && redisReady && kafkaReady) {
+      res.status(200).send("Readiness: OK");
+    } else {
+      res.status(503).json({
+        message: "Readiness: NOT READY",
+        postgres: postgresReady ? "OK" : "DOWN",
+        redis: redisReady ? "OK" : "DOWN",
+        kafka: kafkaReady ? "OK" : "DOWN",
+      });
+    }
+  } catch (error) {
+    res.status(503).json({
+      message: "Readiness: NOT READY",
+      error: error.message,
+    });
   }
 });
 

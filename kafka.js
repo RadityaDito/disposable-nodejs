@@ -28,4 +28,13 @@ const disconnectKafka = async () => {
   }
 };
 
-module.exports = { connectKafka, disconnectKafka };
+const isKafkaConnected = async () => {
+  try {
+    const clusterInfo = await kafka.admin().describeCluster();
+    return !!clusterInfo.brokers.length;
+  } catch (error) {
+    return false;
+  }
+};
+
+module.exports = { connectKafka, disconnectKafka, isKafkaConnected };
