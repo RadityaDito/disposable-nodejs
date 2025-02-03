@@ -7,6 +7,11 @@ const {
 } = require("./postgres");
 const { connectRedis, disconnectRedis, isRedisConnected } = require("./redis");
 const { connectKafka, disconnectKafka, isKafkaConnected } = require("./kafka");
+const {
+  connectMongoDB,
+  disconnectMongoDB,
+  isMongoConnected,
+} = require("./mongodb");
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -19,32 +24,33 @@ const initializeConnections = async () => {
     await connectPostgres();
     await connectRedis();
     await connectKafka();
+    await connectMongoDB();
 
-    // Set app as ready after successful connections
     isAppReady = true;
-    console.log("Startup completed. Application is ready.");
+    console.log("✅ Startup completed. Application is ready.");
   } catch (error) {
     console.error(
-      "Startup failed due to database/queue connection issues:",
+      "❌ Startup failed due to database/queue connection issues:",
       error
     );
-    process.exit(1); // Exit the app with failure code
+    process.exit(1);
   }
 };
 
-// Liveness Probe: Check if the server is running
+// Liveness Probe
 app.get("/liveness", (req, res) => {
   res.status(200).send("Liveness: OK");
 });
 
-// Readiness Probe: Check if all services are connected
+// Readiness Probe
 app.get("/readiness", async (req, res) => {
   try {
     const postgresReady = await isPostgresConnected();
-    const redisReady = await isRedisConnected();
+    const redisReady = isRedisConnected();
     const kafkaReady = await isKafkaConnected();
+    const mongoReady = isMongoConnected();
 
-    if (postgresReady && redisReady && kafkaReady) {
+    if (postgresReady && redisReady && kafkaReady && mongoReady) {
       res.status(200).send("Readiness: OK");
     } else {
       res.status(503).json({
@@ -52,6 +58,7 @@ app.get("/readiness", async (req, res) => {
         postgres: postgresReady ? "OK" : "DOWN",
         redis: redisReady ? "OK" : "DOWN",
         kafka: kafkaReady ? "OK" : "DOWN",
+        mongodb: mongoReady ? "OK" : "DOWN",
       });
     }
   } catch (error) {
@@ -62,7 +69,7 @@ app.get("/readiness", async (req, res) => {
   }
 });
 
-// Startup Probe: Check if the application has fully started
+// Startup Probe
 app.get("/startup", (req, res) => {
   if (isAppReady) {
     res.status(200).send("Startup: OK");
@@ -71,21 +78,22 @@ app.get("/startup", (req, res) => {
   }
 });
 
-// Start the server only if connections succeed
+// Start the server
 const server = app.listen(PORT, async () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
   await initializeConnections();
 });
 
 // Graceful Shutdown
 const gracefulShutdown = async () => {
-  console.log("\nGraceful shutdown in progress...");
+  console.log("\n🔻 Graceful shutdown in progress...");
   await disconnectPostgres();
   await disconnectRedis();
   await disconnectKafka();
+  await disconnectMongoDB();
 
   server.close(() => {
-    console.log("Server shut down gracefully.");
+    console.log("✅ Server shut down gracefully.");
     process.exit(0);
   });
 };

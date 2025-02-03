@@ -12,7 +12,7 @@ const connectKafka = async () => {
   try {
     await producer.connect();
     await consumer.connect();
-    console.log("Connected to Kafka");
+    console.log("✅ Connected to Kafka");
   } catch (error) {
     console.error("Kafka connection error:", error);
   }
