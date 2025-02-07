@@ -20,11 +20,15 @@ const connectKafka = async () => {
 
 const disconnectKafka = async () => {
   try {
-    await producer.disconnect();
+    console.log("⏳ Waiting for Kafka to finish processing messages...");
+
+    await consumer.stop(); // Ensure all messages in progress are completed
     await consumer.disconnect();
-    console.log("Disconnected from Kafka");
+    await producer.disconnect();
+
+    console.log("✅ Disconnected from Kafka");
   } catch (error) {
-    console.error("Error disconnecting Kafka:", error);
+    console.error("❌ Error disconnecting Kafka:", error);
   }
 };
 

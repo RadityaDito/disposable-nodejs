@@ -16,6 +16,20 @@ const connectPostgres = async () => {
 
 const disconnectPostgres = async () => {
   try {
+    const res = await client.query(`
+      SELECT count(*) AS active_queries 
+      FROM pg_stat_activity 
+      WHERE state != 'idle' AND query NOT ILIKE '%pg_stat_activity%';
+    `);
+
+    if (parseInt(res.rows[0].active_queries) > 0) {
+      console.log(
+        `⏳ Waiting for ${res.rows[0].active_queries} active queries to finish...`
+      );
+      await new Promise((resolve) => setTimeout(resolve, 3000)); // Wait 3 seconds
+      return await disconnectPostgres(); // Retry after waiting
+    }
+
     await client.end();
     console.log("✅ Disconnected from PostgreSQL");
   } catch (error) {
@@ -26,11 +40,23 @@ const disconnectPostgres = async () => {
 // Function to check PostgreSQL connection status
 const isPostgresConnected = async () => {
   try {
-    const res = await client.query("SELECT 1"); // Simple query to check connection
-    return res ? true : false;
+    const res = await client.query("SELECT 1"); // Lightweight query
+    return res.rowCount > 0; // Returns true if query succeeds
   } catch (error) {
+    console.error("❌ PostgreSQL readiness check failed:", error);
     return false;
   }
 };
 
-module.exports = { connectPostgres, disconnectPostgres, isPostgresConnected };
+const runLongQuery = async () => {
+  console.log("⏳ Running a long PostgreSQL query...");
+  await client.query("SELECT pg_sleep(10);"); // 10-second delay
+  console.log("✅ Long query finished.");
+};
+
+module.exports = {
+  connectPostgres,
+  disconnectPostgres,
+  isPostgresConnected,
+  runLongQuery,
+};

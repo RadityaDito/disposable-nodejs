@@ -15,6 +15,14 @@ const connectRedis = async () => {
 
 const disconnectRedis = async () => {
   try {
+    if (!redisClient.isOpen) {
+      console.log("✅ Redis already disconnected");
+      return;
+    }
+
+    console.log("⏳ Flushing Redis commands before disconnecting...");
+    await redisClient.flushAll(); // Ensure all commands are processed
+
     await redisClient.quit();
     console.log("✅ Disconnected from Redis");
   } catch (error) {
@@ -23,8 +31,18 @@ const disconnectRedis = async () => {
 };
 
 // Function to check Redis connection status
-const isRedisConnected = () => {
-  return redisClient.isOpen; // Returns true if Redis is connected
+const isRedisConnected = async () => {
+  try {
+    const pong = await redisClient.ping(); // Redis responds with "PONG"
+    return pong === "PONG";
+  } catch (error) {
+    console.error("❌ Redis readiness check failed:", error);
+    return false;
+  }
 };
 
-module.exports = { connectRedis, disconnectRedis, isRedisConnected };
+module.exports = {
+  connectRedis,
+  disconnectRedis,
+  isRedisConnected,
+};

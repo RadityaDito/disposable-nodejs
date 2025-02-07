@@ -1,21 +1,21 @@
 version: "3.8"
 
 services:
-  # app:
-  #   build: .
-  #   container_name: disposable-nodejs
-  #   ports:
-  #     - "8080:8080"
-  #   depends_on:
-  #     - postgres
-  #     - redis
-  #     - kafka
-  #   environment:
-  #     - POSTGRES_URL=postgresql://user:password@postgres:5432/mydatabase
-  #     - REDIS_URL=redis://redis:6379
-  #     - KAFKA_BROKER=kafka:9092
-  #     - MONGODB_URL=mongodb://root:password@mongodb:27017
-  #   restart: always
+  app:
+    build: .
+    container_name: disposable-nodejs
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+    environment:
+      - POSTGRES_URL=postgresql://user:password@postgres:5432/mydatabase
+      - REDIS_URL=redis://redis:6379
+      - KAFKA_BROKER=kafka:9092
+      - MONGODB_URL=mongodb://root:password@mongodb:27017
+    restart: always
 
   postgres:
     image: postgres:latest

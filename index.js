@@ -4,13 +4,20 @@ const {
   connectPostgres,
   disconnectPostgres,
   isPostgresConnected,
+  runLongQuery,
 } = require("./postgres");
-const { connectRedis, disconnectRedis, isRedisConnected } = require("./redis");
+const {
+  connectRedis,
+  disconnectRedis,
+  isRedisConnected,
+  runLongRedisCommand,
+} = require("./redis");
 const { connectKafka, disconnectKafka, isKafkaConnected } = require("./kafka");
 const {
   connectMongoDB,
   disconnectMongoDB,
   isMongoConnected,
+  runLongMongoQuery,
 } = require("./mongodb");
 
 const app = express();
@@ -44,11 +51,17 @@ app.get("/liveness", (req, res) => {
 
 // Readiness Probe
 app.get("/readiness", async (req, res) => {
+  if (!isAppReady) {
+    return res
+      .status(503)
+      .json({ message: "Readiness: NOT READY (Application not ready)" });
+  }
+
   try {
     const postgresReady = await isPostgresConnected();
-    const redisReady = isRedisConnected();
+    const redisReady = await isRedisConnected();
     const kafkaReady = await isKafkaConnected();
-    const mongoReady = isMongoConnected();
+    const mongoReady = await isMongoConnected();
 
     if (postgresReady && redisReady && kafkaReady && mongoReady) {
       res.status(200).send("Readiness: OK");
@@ -78,6 +91,16 @@ app.get("/startup", (req, res) => {
   }
 });
 
+app.get("/test-postgres", async (req, res) => {
+  await runLongQuery();
+  res.send("✅ Long PostgreSQL query completed.");
+});
+
+app.get("/test-mongo", async (req, res) => {
+  await runLongMongoQuery();
+  res.send("✅ Long MongoDB operation completed.");
+});
+
 // Start the server
 const server = app.listen(PORT, async () => {
   console.log(`🚀 Server running on port ${PORT}`);
@@ -87,10 +110,13 @@ const server = app.listen(PORT, async () => {
 // Graceful Shutdown
 const gracefulShutdown = async () => {
   console.log("\n🔻 Graceful shutdown in progress...");
-  await disconnectPostgres();
-  await disconnectRedis();
-  await disconnectKafka();
-  await disconnectMongoDB();
+
+  isAppReady = false; // Mark application as not ready before shutting down
+
+  await disconnectKafka(); // Wait for Kafka messages to be processed
+  await disconnectRedis(); // Ensure Redis has no pending commands
+  await disconnectMongoDB(); // Ensure MongoDB has no active queries
+  await disconnectPostgres(); // Ensure PostgreSQL has no active transactions
 
   server.close(() => {
     console.log("✅ Server shut down gracefully.");
