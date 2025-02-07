@@ -16,20 +16,6 @@ const connectPostgres = async () => {
 
 const disconnectPostgres = async () => {
   try {
-    const res = await client.query(`
-      SELECT count(*) AS active_queries 
-      FROM pg_stat_activity 
-      WHERE state != 'idle' AND query NOT ILIKE '%pg_stat_activity%';
-    `);
-
-    if (parseInt(res.rows[0].active_queries) > 0) {
-      console.log(
-        `⏳ Waiting for ${res.rows[0].active_queries} active queries to finish...`
-      );
-      await new Promise((resolve) => setTimeout(resolve, 3000)); // Wait 3 seconds
-      return await disconnectPostgres(); // Retry after waiting
-    }
-
     await client.end();
     console.log("✅ Disconnected from PostgreSQL");
   } catch (error) {

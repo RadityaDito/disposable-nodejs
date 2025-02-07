@@ -20,7 +20,7 @@ const disconnectRedis = async () => {
       return;
     }
 
-    console.log("⏳ Flushing Redis commands before disconnecting...");
+    // console.log("⏳ Flushing Redis commands before disconnecting...");
     await redisClient.flushAll(); // Ensure all commands are processed
 
     await redisClient.quit();

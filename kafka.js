@@ -20,7 +20,7 @@ const connectKafka = async () => {
 
 const disconnectKafka = async () => {
   try {
-    console.log("⏳ Waiting for Kafka to finish processing messages...");
+    // console.log("⏳ Waiting for Kafka to finish processing messages...");
 
     await consumer.stop(); // Ensure all messages in progress are completed
     await consumer.disconnect();

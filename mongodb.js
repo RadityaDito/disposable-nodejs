@@ -17,18 +17,6 @@ const connectMongoDB = async () => {
 
 const disconnectMongoDB = async () => {
   try {
-    const admin = mongoClient.db().admin();
-    const operations = await admin.serverStatus();
-    const activeOps = operations.globalLock.activeClients.total;
-
-    if (activeOps > 0) {
-      console.log(
-        `⏳ Waiting for ${activeOps} active MongoDB operations to finish...`
-      );
-      await new Promise((resolve) => setTimeout(resolve, 3000)); // Wait 3 seconds
-      return await disconnectMongoDB(); // Retry after waiting
-    }
-
     await mongoClient.close();
     console.log("✅ Disconnected from MongoDB");
   } catch (error) {

@@ -6,12 +6,7 @@ const {
   isPostgresConnected,
   runLongQuery,
 } = require("./postgres");
-const {
-  connectRedis,
-  disconnectRedis,
-  isRedisConnected,
-  runLongRedisCommand,
-} = require("./redis");
+const { connectRedis, disconnectRedis, isRedisConnected } = require("./redis");
 const { connectKafka, disconnectKafka, isKafkaConnected } = require("./kafka");
 const {
   connectMongoDB,
@@ -113,13 +108,14 @@ const gracefulShutdown = async () => {
 
   isAppReady = false; // Mark application as not ready before shutting down
 
-  await disconnectKafka(); // Wait for Kafka messages to be processed
-  await disconnectRedis(); // Ensure Redis has no pending commands
-  await disconnectMongoDB(); // Ensure MongoDB has no active queries
-  await disconnectPostgres(); // Ensure PostgreSQL has no active transactions
-
-  server.close(() => {
+  server.close(async () => {
     console.log("✅ Server shut down gracefully.");
+
+    await disconnectKafka(); // Wait for Kafka messages to be processed
+    await disconnectRedis(); // Ensure Redis has no pending commands
+    await disconnectMongoDB(); // Ensure MongoDB has no active queries
+    await disconnectPostgres(); // Ensure PostgreSQL has no active transactions
+
     process.exit(0);
   });
 };
